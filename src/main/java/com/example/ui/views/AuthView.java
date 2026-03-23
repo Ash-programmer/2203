@@ -1,11 +1,9 @@
 package com.example.ui.views;
 
 import com.example.controllers.AuthController;
-import com.example.domain.User;
-import com.example.domain.Hero;
-import com.example.domain.Party;
-import com.example.Main;
+import com.example.domain.*;
 import com.example.ui.UICommands;
+import com.example.Main;
 
 import javax.swing.*;
 import java.awt.*;
@@ -13,43 +11,41 @@ import java.awt.*;
 public class AuthView extends JFrame implements UICommands {
 
     private AuthController controller;
+    private AppState state;
 
-    private JTextField usernameField;
-    private JPasswordField passwordField;
-    private JLabel message;
+    JTextField userField;
+    JPasswordField passField;
 
     public AuthView(AuthController controller) {
         this.controller = controller;
+        this.state = new AppState();
         init();
     }
 
     private void init() {
 
         setTitle("Login");
-        setSize(400,200);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setSize(350,200);
         setLocationRelativeTo(null);
 
-        JPanel panel = new JPanel(new GridLayout(4,2));
-
-        panel.add(new JLabel("Username"));
-        usernameField = new JTextField();
-        panel.add(usernameField);
-
-        panel.add(new JLabel("Password"));
-        passwordField = new JPasswordField();
-        panel.add(passwordField);
+        userField = new JTextField();
+        passField = new JPasswordField();
 
         JButton login = new JButton("Login");
         JButton register = new JButton("Register");
 
-        panel.add(login);
-        panel.add(register);
+        JPanel p = new JPanel(new GridLayout(3,2));
 
-        message = new JLabel("");
-        panel.add(message);
+        p.add(new JLabel("Username"));
+        p.add(userField);
 
-        add(panel);
+        p.add(new JLabel("Password"));
+        p.add(passField);
+
+        p.add(login);
+        p.add(register);
+
+        add(p);
 
         login.addActionListener(e -> login());
         register.addActionListener(e -> register());
@@ -57,49 +53,50 @@ public class AuthView extends JFrame implements UICommands {
 
     private void login() {
 
-        String u = usernameField.getText();
-        String p = new String(passwordField.getPassword());
+        User u =
+                controller.login(
+                        userField.getText(),
+                        new String(passField.getPassword())
+                );
 
-        User user = controller.login(u,p);
+        if(u != null) {
 
-        if(user != null) {
+            state.currentUser = u;
 
-            message.setText("Login success");
+            state.currentParty = new Party();
+            state.currentParty.addHero(new Hero("Knight","Warrior"));
 
-            Party party = new Party();
-            party.addHero(new Hero("Knight","Warrior"));
-
-            CampaignView v =
-                    new CampaignView(Main.campaignController);
-
-            v.setData(user, party);
+            state.currentInventory = new Inventory();
 
             dispose();
 
-            v.start();
+            MainMenuView menu = new MainMenuView(
+                    state,
+                    Main.campaignController,
+                    Main.battleController,
+                    Main.innController,
+                    Main.pvpController,
+                    Main.continueController
+            );
+            menu.start();
 
-        }
-        else {
-            message.setText("Login failed");
+        } else {
+
+            JOptionPane.showMessageDialog(this,"Login failed");
+
         }
     }
 
     private void register() {
 
-        String u = usernameField.getText();
-        String p = new String(passwordField.getPassword());
+        boolean ok =
+                controller.register(
+                        userField.getText(),
+                        new String(passField.getPassword())
+                );
 
-        boolean ok = controller.register(u,p);
-
-        if(ok)
-            message.setText("Registered");
-        else
-            message.setText("Register failed");
-    }
-
-    public static void returnToLogin(AuthController controller) {
-        AuthView authView = new AuthView(controller);
-        authView.start();
+        JOptionPane.showMessageDialog(this,
+                ok ? "Registered" : "Failed");
     }
 
     public void start() {

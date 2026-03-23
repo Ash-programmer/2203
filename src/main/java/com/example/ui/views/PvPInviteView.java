@@ -1,7 +1,6 @@
 package com.example.ui.views;
 
 import com.example.controllers.PvPInviteController;
-import com.example.domain.User;
 import com.example.ui.UICommands;
 
 import javax.swing.*;
@@ -10,60 +9,43 @@ import java.awt.*;
 public class PvPInviteView extends JFrame implements UICommands {
 
     private PvPInviteController controller;
+    private AppState state;
 
-    private JTextField fromField;
-    private JTextField toField;
-    private JTextArea output;
+    JTextField opponent;
 
-    public PvPInviteView(
-            PvPInviteController controller) {
+    public PvPInviteView(AppState state, PvPInviteController controller) {
 
+        this.state = state;
         this.controller = controller;
+
         init();
     }
 
     private void init() {
 
         setTitle("PvP");
-        setSize(400,250);
+        setSize(400,200);
 
-        fromField = new JTextField();
-        toField = new JTextField();
-        output = new JTextArea();
+        opponent = new JTextField();
 
-        JButton send = new JButton("Send");
+        JButton send = new JButton("Send Invite");
 
-        JPanel p = new JPanel(new GridLayout(3,2));
-
-        p.add(new JLabel("From"));
-        p.add(fromField);
-
-        p.add(new JLabel("To"));
-        p.add(toField);
-
-        p.add(send);
-
-        add(p,BorderLayout.NORTH);
-        add(output,BorderLayout.CENTER);
+        add(opponent,BorderLayout.CENTER);
+        add(send,BorderLayout.SOUTH);
 
         send.addActionListener(e -> send());
     }
 
     private void send() {
 
-        User u =
-                new User(1,fromField.getText(),"h");
-
         boolean ok =
                 controller.sendInvite(
-                        u,
-                        toField.getText()
+                        state.currentUser,
+                        opponent.getText()
                 );
 
-        if(ok)
-            output.setText("Sent");
-        else
-            output.setText("Fail");
+        JOptionPane.showMessageDialog(this,
+                ok ? "Invite Sent" : "Invite Failed");
     }
 
     public void start() {

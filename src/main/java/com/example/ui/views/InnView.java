@@ -3,21 +3,23 @@ package com.example.ui.views;
 import com.example.controllers.InnController;
 import com.example.domain.*;
 import com.example.ui.UICommands;
+import com.example.ui.views.AppState;
 
 import javax.swing.*;
 import java.awt.*;
 
 public class InnView extends JFrame implements UICommands {
 
+    private AppState state;
     private InnController controller;
 
-    private JTextArea output;
+    JTextArea output;
 
-    private Party party;
-    private Inventory inventory;
+    public InnView(AppState state, InnController controller) {
 
-    public InnView(InnController controller) {
+        this.state = state;
         this.controller = controller;
+
         init();
     }
 
@@ -28,41 +30,28 @@ public class InnView extends JFrame implements UICommands {
 
         output = new JTextArea();
 
-        JButton load = new JButton("Load");
-        JButton status = new JButton("Status");
-        JButton buy = new JButton("Buy");
+        JButton rest = new JButton("Rest");
+        JButton buy = new JButton("Buy Potion");
         JButton recruit = new JButton("Recruit");
 
         JPanel p = new JPanel();
 
-        p.add(load);
-        p.add(status);
+        p.add(rest);
         p.add(buy);
         p.add(recruit);
 
         add(new JScrollPane(output),BorderLayout.CENTER);
         add(p,BorderLayout.SOUTH);
 
-        load.addActionListener(e -> load());
-        status.addActionListener(e -> status());
+        rest.addActionListener(e -> rest());
         buy.addActionListener(e -> buy());
         recruit.addActionListener(e -> recruit());
     }
 
-    private void load() {
-
-        party = new Party();
-        party.addHero(new Hero("Hero","Warrior"));
-
-        inventory = new Inventory();
-
-        output.append("Loaded\n");
-    }
-
-    private void status() {
+    private void rest() {
 
         StatusReport r =
-                controller.getStatus(party);
+                controller.getStatus(state.currentParty);
 
         output.append(r.getMessage()+"\n");
     }
@@ -74,7 +63,10 @@ public class InnView extends JFrame implements UICommands {
 
         ActionResult r =
                 controller.purchaseItem(
-                        party,inventory,i);
+                        state.currentParty,
+                        state.currentInventory,
+                        i
+                );
 
         output.append(r.getMessage()+"\n");
     }
@@ -85,7 +77,7 @@ public class InnView extends JFrame implements UICommands {
                 new Hero("Mage","Mage");
 
         ActionResult r =
-                controller.recruitHero(party,h);
+                controller.recruitHero(state.currentParty,h);
 
         output.append(r.getMessage()+"\n");
     }

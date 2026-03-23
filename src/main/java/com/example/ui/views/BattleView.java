@@ -20,7 +20,7 @@ public class BattleView extends JFrame implements UICommands {
 
     private BattleState state;
 
-    public BattleView(BattleController controller) {
+    public BattleView(AppState state, BattleController controller) {
         this.controller = controller;
         init();
     }

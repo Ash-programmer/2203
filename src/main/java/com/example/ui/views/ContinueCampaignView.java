@@ -15,7 +15,7 @@ public class ContinueCampaignView extends JFrame implements UICommands {
     private JTextArea output;
 
     public ContinueCampaignView(
-            ContinueCampaignController controller) {
+            AppState state, ContinueCampaignController controller) {
 
         this.controller = controller;
         init();
