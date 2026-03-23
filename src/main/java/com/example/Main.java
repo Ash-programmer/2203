@@ -1,4 +1,4 @@
-package com.example;
+package com.example.ui;
 
 import com.example.controllers.*;
 import com.example.persistence.repositories.*;
@@ -7,29 +7,48 @@ import com.example.ui.views.*;
 
 public class Main {
 
+    // ---------- CONTROLLERS (GLOBAL) ----------
+
+    public static AuthController authController;
+    public static CampaignController campaignController;
+    public static BattleController battleController;
+    public static InnController innController;
+    public static PvPInviteController pvpController;
+    public static ContinueCampaignController continueController;
+    public static ExitCampaignController exitController;
+
+
     public static void main(String[] args) {
 
-        // ---------- REPOS ----------
+        // ---------- REPOSITORIES ----------
 
         UserRepo userRepo = new UserRepo();
         CampaignRepo campaignRepo = new CampaignRepo();
         PartyRepo partyRepo = new PartyRepo();
 
+
         // ---------- SERVICES ----------
 
-        AuthService authService = new AuthService(userRepo);
+        AuthService authService =
+                new AuthService(userRepo);
 
-        PartyService partyService = new PartyService();
+        PartyService partyService =
+                new PartyService();
 
-        InventoryService inventoryService = new InventoryService();
+        InventoryService inventoryService =
+                new InventoryService();
 
         CampaignService campaignService =
                 new CampaignService(campaignRepo);
 
-        BattleService battleService = new BattleService();
+        BattleService battleService =
+                new BattleService();
 
         InnService innService =
-                new InnService(inventoryService, partyService);
+                new InnService(
+                        inventoryService,
+                        partyService
+                );
 
         InvitationService invitationService =
                 new InvitationService(userRepo);
@@ -37,52 +56,41 @@ public class Main {
 
         // ---------- CONTROLLERS ----------
 
-        AuthController authController =
+        authController =
                 new AuthController(authService);
 
-        CampaignController campaignController =
+        campaignController =
                 new CampaignController(campaignService);
 
-        BattleController battleController =
+        battleController =
                 new BattleController(battleService);
 
-        InnController innController =
+        innController =
                 new InnController(innService);
 
-        PvPInviteController pvpController =
-                new PvPInviteController(invitationService);
+        pvpController =
+                new PvPInviteController(
+                        invitationService
+                );
 
-        ContinueCampaignController continueController =
-                new ContinueCampaignController(campaignService);
+        continueController =
+                new ContinueCampaignController(
+                        campaignService
+                );
 
-        ExitCampaignController exitController =
-                new ExitCampaignController(campaignService);
+        exitController =
+                new ExitCampaignController(
+                        campaignService
+                );
 
 
-        // ---------- VIEWS ----------
+        // ---------- START VIEW ----------
 
         AuthView authView =
                 new AuthView(authController);
 
-        CampaignView campaignView =
-                new CampaignView(campaignController);
-
-        BattleView battleView =
-                new BattleView(battleController);
-
-        InnView innView =
-                new InnView(innController);
-
-        PvPInviteView pvpView =
-                new PvPInviteView(pvpController);
-
-        ContinueCampaignView continueView =
-                new ContinueCampaignView(continueController);
-
-
-        // ---------- START ----------
-
         authView.start();
 
     }
+
 }

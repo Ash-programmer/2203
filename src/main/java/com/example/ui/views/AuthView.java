@@ -2,6 +2,9 @@ package com.example.ui.views;
 
 import com.example.controllers.AuthController;
 import com.example.domain.User;
+import com.example.domain.Hero;
+import com.example.domain.Party;
+import com.example.ui.Main;
 import com.example.ui.UICommands;
 
 import javax.swing.*;
@@ -59,11 +62,26 @@ public class AuthView extends JFrame implements UICommands {
 
         User user = controller.login(u,p);
 
-        if(user != null)
-            message.setText("Login success");
-        else
-            message.setText("Login failed");
+        if(user != null) {
 
+            message.setText("Login success");
+
+            Party party = new Party();
+            party.addHero(new Hero("Knight","Warrior"));
+
+            CampaignView v =
+                    new CampaignView(Main.campaignController);
+
+            v.setData(user, party);
+
+            dispose();
+
+            v.start();
+
+        }
+        else {
+            message.setText("Login failed");
+        }
     }
 
     private void register() {

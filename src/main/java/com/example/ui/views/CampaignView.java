@@ -18,7 +18,9 @@ public class CampaignView extends JFrame implements UICommands {
     private Party party;
 
     public CampaignView(CampaignController controller) {
+
         this.controller = controller;
+
         init();
     }
 
@@ -27,13 +29,14 @@ public class CampaignView extends JFrame implements UICommands {
         setTitle("Campaign");
         setSize(500,400);
         setLocationRelativeTo(null);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
 
         output = new JTextArea();
 
-        JButton start = new JButton("Start");
+        JButton start = new JButton("Start Campaign");
         JButton next = new JButton("Next Room");
         JButton save = new JButton("Save");
-        JButton end = new JButton("End");
+        JButton end = new JButton("End Campaign");
 
         JPanel p = new JPanel();
 
@@ -42,8 +45,8 @@ public class CampaignView extends JFrame implements UICommands {
         p.add(save);
         p.add(end);
 
-        add(new JScrollPane(output),BorderLayout.CENTER);
-        add(p,BorderLayout.SOUTH);
+        add(new JScrollPane(output), BorderLayout.CENTER);
+        add(p, BorderLayout.SOUTH);
 
         start.addActionListener(e -> startCampaign());
         next.addActionListener(e -> nextRoom());
@@ -51,54 +54,126 @@ public class CampaignView extends JFrame implements UICommands {
         end.addActionListener(e -> end());
     }
 
+
+
     public void setData(User u, Party p) {
-        user = u;
-        party = p;
+
+        this.user = u;
+        this.party = p;
+
     }
+
+
 
     private void startCampaign() {
 
-        if(user == null || party == null) {
-            output.append("No user/party\n");
+        if(user == null) {
+
+            output.append("No user\n");
             return;
         }
 
-        campaign = controller.startCampaign(user,party);
+        if(party == null) {
 
-        output.append("Started\n");
+            output.append("No party\n");
+            return;
+        }
+
+        campaign =
+                controller.startCampaign(
+                        user,
+                        party
+                );
+
+        output.append("Campaign started\n");
+
+        output.append(
+                "Room: "
+                        + campaign.getCurrentRoom()
+                        + "\n"
+        );
 
     }
+
+
 
     private void nextRoom() {
 
-        if(campaign == null) return;
+        if(campaign == null) {
 
-        Room r = controller.nextRoom(campaign);
+            output.append("Start campaign first\n");
+            return;
+        }
 
-        output.append("Room "+r.getRoomNumber()+" "+r.getType()+"\n");
+        Room r =
+                controller.nextRoom(
+                        campaign
+                );
+
+        output.append(
+                "Room "
+                        + r.getRoomNumber()
+                        + " "
+                        + r.getType()
+                        + "\n"
+        );
+
     }
+
+
 
     private void save() {
 
-        if(campaign == null) return;
+        if(campaign == null) {
 
-        controller.saveProgress(campaign);
+            output.append("Nothing to save\n");
+            return;
+        }
+
+        controller.saveProgress(
+                campaign
+        );
 
         output.append("Saved\n");
 
     }
 
+
+
     private void end() {
 
-        if(campaign == null) return;
+        if(campaign == null) {
 
-        Score s = controller.endCampaign(user,campaign);
+            output.append("No campaign\n");
+            return;
+        }
 
-        output.append("Score "+s.getValue()+"\n");
+        if(user == null) {
+
+            output.append("No user\n");
+            return;
+        }
+
+        Score s =
+                controller.endCampaign(
+                        user,
+                        campaign
+                );
+
+        output.append(
+                "Score = "
+                        + s.getValue()
+                        + "\n"
+        );
 
     }
+
+
 
     public void start() {
+
         setVisible(true);
+
     }
+
 }
