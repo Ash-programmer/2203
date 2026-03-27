@@ -14,6 +14,7 @@ public class Campaign {
         this.currentRoom = 1;
         this.score = 0;
         this.complete = false;
+        this.lastRoomType = RoomType.INN;
     }
 
     public Campaign(Party party) {
@@ -21,20 +22,20 @@ public class Campaign {
         this.party = party;
     }
 
-    public int getCurrentRoom()         { return currentRoom; }
-    public Party getParty()             { return party; }
-    public Inventory getInventory()     { return inventory; }
-    public int getScore()               { return score; }
-    public boolean isComplete()         { return complete; }
-    public boolean isFinished()         { return complete; }
-    public RoomType getLastRoomType()   { return lastRoomType; }
+    public int getCurrentRoom()       { return currentRoom; }
+    public Party getParty()           { return party; }
+    public Inventory getInventory()   { return inventory; }
+    public int getScore()             { return score; }
+    public boolean isComplete()       { return complete; }
+    public boolean isFinished()       { return complete; }
+    public RoomType getLastRoomType() { return lastRoomType; }
 
-    public void setCurrentRoom(int currentRoom)     { this.currentRoom = currentRoom; }
-    public void setParty(Party party)               { this.party = party; }
-    public void setInventory(Inventory inventory)   { this.inventory = inventory; }
-    public void setScore(int score)                 { this.score = score; }
-    public void setComplete(boolean complete)       { this.complete = complete; }
-    public void setLastRoomType(RoomType type)      { this.lastRoomType = type; }
+    public void setCurrentRoom(int currentRoom)   { this.currentRoom = currentRoom; }
+    public void setParty(Party party)             { this.party = party; }
+    public void setInventory(Inventory inventory) { this.inventory = inventory; }
+    public void setScore(int score)               { this.score = score; }
+    public void setComplete(boolean complete)     { this.complete = complete; }
+    public void setLastRoomType(RoomType type)    { this.lastRoomType = type; }
 
     public void advanceRoom() {
         currentRoom++;
@@ -44,7 +45,7 @@ public class Campaign {
     }
 
     public boolean isBattleRoom() {
-        return Math.random() < 0.6;
+        return lastRoomType == RoomType.BATTLE;
     }
 
     public void addScore(int value) {
@@ -52,6 +53,8 @@ public class Campaign {
     }
 
     public void calculateFinalScore() {
+        if (party == null) return;
+
         score += party.getGold() / 10;
         for (Hero h : party.getHeroes()) {
             score += h.getLevel() * 100;

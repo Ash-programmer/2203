@@ -2,7 +2,6 @@ package com.example.controllers;
 
 import com.example.domain.Campaign;
 import com.example.domain.Party;
-import com.example.domain.Room;
 import com.example.domain.Score;
 import com.example.domain.User;
 import com.example.services.CampaignService;
@@ -19,8 +18,16 @@ public class CampaignController {
         return campaignService.startCampaign(user, party);
     }
 
-    public Room nextRoom(Campaign campaign) {
-        return campaignService.nextRoom(campaign);
+    public void moveToInn(Campaign campaign) {
+        campaignService.moveToInn(campaign);
+    }
+
+    public void moveToBattle(Campaign campaign) {
+        campaignService.moveToBattle(campaign);
+    }
+
+    public void completeBattleAndAdvance(Campaign campaign) {
+        campaignService.completeBattleAndAdvance(campaign);
     }
 
     public void saveProgress(int userId, Campaign campaign) {

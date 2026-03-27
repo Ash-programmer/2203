@@ -11,4 +11,7 @@ public class AppState {
     public Inventory currentInventory;
     public Campaign currentCampaign;
     public boolean battleInProgress;
+
+    public boolean currentlyInInn;
+    public boolean currentlyInBattle;
 }

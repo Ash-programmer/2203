@@ -1,6 +1,11 @@
 package com.example.services;
 
-import com.example.domain.*;
+import com.example.domain.Campaign;
+import com.example.domain.Party;
+import com.example.domain.Room;
+import com.example.domain.RoomType;
+import com.example.domain.Score;
+import com.example.domain.User;
 import com.example.persistence.repositories.CampaignRepo;
 import com.example.persistence.repositories.PartyRepo;
 import com.example.persistence.repositories.UserRepo;
@@ -21,17 +26,27 @@ public class CampaignService {
 
     public Campaign startCampaign(User user, Party party) {
         Campaign campaign = new Campaign(party);
+
+        campaign.setCurrentRoom(1);
+        campaign.setLastRoomType(RoomType.INN);
+
         user.getCampaigns().clear();
         user.addCampaign(campaign);
         campaignRepo.save(user.getUserId(), campaign);
         return campaign;
     }
 
-    public Room nextRoom(Campaign campaign) {
+    public void moveToInn(Campaign campaign) {
+        campaign.setLastRoomType(RoomType.INN);
+    }
+
+    public void moveToBattle(Campaign campaign) {
+        campaign.setLastRoomType(RoomType.BATTLE);
+    }
+
+    public void completeBattleAndAdvance(Campaign campaign) {
         campaign.advanceRoom();
-        Room room = Room.randomRoom(campaign.getCurrentRoom());
-        campaign.setLastRoomType(room.getType());
-        return room;
+        campaign.setLastRoomType(RoomType.BATTLE);
     }
 
     public void saveProgress(int userId, Campaign campaign) {
