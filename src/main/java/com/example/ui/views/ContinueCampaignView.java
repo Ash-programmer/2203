@@ -48,6 +48,7 @@ public class ContinueCampaignView extends JFrame implements UICommands {
         state.currentCampaign = c;
         state.currentParty = c.getParty();
         state.currentInventory = c.getInventory();
+
         state.currentlyInInn = c.getLastRoomType() == RoomType.INN;
         state.currentlyInBattle = c.getLastRoomType() == RoomType.BATTLE;
         state.battleInProgress = false;
@@ -56,10 +57,12 @@ public class ContinueCampaignView extends JFrame implements UICommands {
                 + "\nLast room type: " + c.getLastRoomType());
 
         if (c.getLastRoomType() == RoomType.INN) {
-            new InnView(state, Main.innController).start();
+            InnView innView = new InnView(state, Main.innController);
+            innView.start();
             dispose();
         } else {
-            new CampaignView(state, Main.campaignController).start();
+            CampaignView campaignView = new CampaignView(state, Main.campaignController);
+            campaignView.start();
             dispose();
         }
     }
