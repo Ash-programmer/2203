@@ -6,6 +6,7 @@ import com.example.domain.ActionType;
 import com.example.domain.BattleResult;
 import com.example.domain.BattleState;
 import com.example.domain.Hero;
+import com.example.domain.Item;
 import com.example.domain.Party;
 import com.example.ui.UICommands;
 
@@ -22,8 +23,19 @@ public class BattleView extends JFrame implements UICommands {
     private JTextArea output;
     private JComboBox<String> targetBox;
 
+    private JButton startButton;
+    private JButton attackButton;
+    private JButton defendButton;
+    private JButton waitButton;
+    private JButton specialButton;
+    private JButton useItemButton;
+    private JButton refreshButton;
+
     private BattleState battleState;
     private boolean rewardsApplied = false;
+    private boolean actionLocked = false;
+
+    private final List<String> battleLog = new ArrayList<>();
 
     public BattleView(AppState state, BattleController controller) {
         this.appState = state;
@@ -33,7 +45,7 @@ public class BattleView extends JFrame implements UICommands {
 
     private void init() {
         setTitle("Battle");
-        setSize(800, 560);
+        setSize(820, 580);
         setLocationRelativeTo(null);
 
         output = new JTextArea();
@@ -41,35 +53,42 @@ public class BattleView extends JFrame implements UICommands {
 
         targetBox = new JComboBox<>();
 
-        JButton start = new JButton("Start Battle");
-        JButton attack = new JButton("Attack");
-        JButton defend = new JButton("Defend");
-        JButton wait = new JButton("Wait");
-        JButton special = new JButton("Special");
-        JButton refresh = new JButton("Refresh");
+        startButton = new JButton("Start Battle");
+        attackButton = new JButton("Attack");
+        defendButton = new JButton("Defend");
+        waitButton = new JButton("Wait");
+        specialButton = new JButton("Special");
+        useItemButton = new JButton("Use Item");
+        refreshButton = new JButton("Refresh");
 
         JPanel top = new JPanel();
-        top.add(start);
+        top.add(startButton);
         top.add(new JLabel("Target"));
         top.add(targetBox);
-        top.add(attack);
-        top.add(defend);
-        top.add(wait);
-        top.add(special);
-        top.add(refresh);
+        top.add(attackButton);
+        top.add(defendButton);
+        top.add(waitButton);
+        top.add(specialButton);
+        top.add(useItemButton);
+        top.add(refreshButton);
 
         add(top, BorderLayout.NORTH);
         add(new JScrollPane(output), BorderLayout.CENTER);
 
-        start.addActionListener(e -> startBattle());
-        attack.addActionListener(e -> playerAction(ActionType.ATTACK));
-        defend.addActionListener(e -> playerAction(ActionType.DEFEND));
-        wait.addActionListener(e -> playerAction(ActionType.WAIT));
-        special.addActionListener(e -> playerAction(ActionType.SPECIAL));
-        refresh.addActionListener(e -> refreshBattleView());
+        startButton.addActionListener(e -> startBattle());
+        attackButton.addActionListener(e -> playerAction(ActionType.ATTACK));
+        defendButton.addActionListener(e -> playerAction(ActionType.DEFEND));
+        waitButton.addActionListener(e -> playerAction(ActionType.WAIT));
+        specialButton.addActionListener(e -> playerAction(ActionType.SPECIAL));
+        useItemButton.addActionListener(e -> useItem());
+        refreshButton.addActionListener(e -> refreshBattleView());
+
+        setActionButtonsEnabled(false);
     }
 
     private void startBattle() {
+        if (actionLocked) return;
+
         Party playerParty;
 
         if (appState.currentCampaign != null && appState.currentCampaign.getParty() != null) {
@@ -82,7 +101,8 @@ public class BattleView extends JFrame implements UICommands {
         }
 
         if (playerParty.getHeroes().isEmpty()) {
-            append("Your party has no heroes.");
+            log("Your party has no heroes.");
+            refreshBattleView();
             return;
         }
 
@@ -93,10 +113,15 @@ public class BattleView extends JFrame implements UICommands {
         appState.currentlyInBattle = true;
         appState.currentlyInInn = false;
         rewardsApplied = false;
+        actionLocked = false;
+        battleLog.clear();
 
-        append("Battle started.");
+        log("Battle started.");
         refreshBattleView();
-        processEnemyTurnsIfNeeded();
+
+        if (!isPlayerTurn()) {
+            scheduleSingleEnemyTurn();
+        }
     }
 
     private Party buildEnemyParty() {
@@ -118,25 +143,30 @@ public class BattleView extends JFrame implements UICommands {
     }
 
     private void playerAction(ActionType type) {
+        if (actionLocked) return;
+
         if (battleState == null) {
-            append("Start a battle first.");
+            log("Start a battle first.");
+            refreshBattleView();
             return;
         }
 
         if (battleState.isFinished()) {
-            append("Battle is already over.");
+            log("Battle is already over.");
+            refreshBattleView();
             return;
         }
 
         Hero actor = battleState.getCurrentHero();
         if (actor == null) {
-            append("No current actor.");
+            log("No current actor.");
+            refreshBattleView();
             return;
         }
 
         if (!isPlayerHero(actor)) {
-            append("It is not your team's turn.");
-            processEnemyTurnsIfNeeded();
+            log("It is not your turn.");
+            refreshBattleView();
             return;
         }
 
@@ -145,60 +175,234 @@ public class BattleView extends JFrame implements UICommands {
 
         if (type == ActionType.ATTACK || type == ActionType.SPECIAL) {
             target = selectedEnemyTarget();
-            if (target == null && type == ActionType.ATTACK) {
-                append("Choose a target.");
+            if (target == null) {
+                log("Choose a target.");
+                refreshBattleView();
                 return;
             }
+
             if (type == ActionType.SPECIAL) {
                 manaCost = manaCostFor(actor);
             }
         }
 
+        actionLocked = true;
+        setActionButtonsEnabled(false);
+
         com.example.domain.Action action =
                 new com.example.domain.Action(type, actor, target, manaCost);
 
         BattleResult result = controller.executeTurn(battleState, action);
-        append(actor.getName() + " used " + type + ". " + result.getMessage());
+
+        if (type == ActionType.ATTACK && target != null) {
+            log(actor.getName() + " attacked " + target.getName() + ".");
+        } else if (type == ActionType.DEFEND) {
+            log(actor.getName() + " defended and recovered HP/mana.");
+        } else if (type == ActionType.WAIT) {
+            log(actor.getName() + " waited and moved to the end of the turn order.");
+        } else if (type == ActionType.SPECIAL) {
+            log(actor.getName() + " used a special ability.");
+        }
+
+        log(result.getMessage());
+        refreshBattleView();
 
         if (battleState.isFinished()) {
-            applyBattleOutcome(result);
-            refreshBattleView();
-            postBattleChoice();
+            finishBattle(result);
             return;
         }
 
-        refreshBattleView();
-        processEnemyTurnsIfNeeded();
+        actionLocked = false;
+
+        // After a player action, exactly one enemy turn should happen if it becomes enemy turn
+        if (!isPlayerTurn()) {
+            scheduleSingleEnemyTurn();
+        } else {
+            refreshBattleView();
+        }
     }
 
-    private void processEnemyTurnsIfNeeded() {
-        while (battleState != null && !battleState.isFinished()) {
-            Hero actor = battleState.getCurrentHero();
-            if (actor == null || isPlayerHero(actor)) {
-                break;
-            }
+    private void useItem() {
+        if (actionLocked) return;
 
-            Hero target = firstLivingHero(battleState.getPlayerParty());
-            if (target == null) {
-                battleState.checkBattleEnd();
-                break;
-            }
-
-            com.example.domain.Action action =
-                    new com.example.domain.Action(ActionType.ATTACK, actor, target, 0);
-
-            BattleResult result = controller.executeTurn(battleState, action);
-            append(actor.getName() + " attacks " + target.getName() + ". " + result.getMessage());
-
-            if (battleState.isFinished()) {
-                applyBattleOutcome(result);
-                refreshBattleView();
-                postBattleChoice();
-                break;
-            }
+        if (battleState == null || battleState.isFinished()) {
+            log("Start a battle first.");
+            refreshBattleView();
+            return;
         }
 
+        if (!isPlayerTurn()) {
+            log("You can only use items on your turn.");
+            refreshBattleView();
+            return;
+        }
+
+        if (appState.currentInventory == null || appState.currentInventory.getItems().isEmpty()) {
+            log("You have no items.");
+            refreshBattleView();
+            return;
+        }
+
+        List<Item> items = appState.currentInventory.getItems();
+        List<Hero> heroes = livingHeroes(battleState.getPlayerParty());
+
+        if (heroes.isEmpty()) {
+            log("No living heroes can receive an item.");
+            refreshBattleView();
+            return;
+        }
+
+        String[] itemOptions = new String[items.size()];
+        for (int i = 0; i < items.size(); i++) {
+            Item item = items.get(i);
+            itemOptions[i] = item.getName() + " (" + item.getEffectType() + " " + item.getEffectValue() + ")";
+        }
+
+        String selectedItemText = (String) JOptionPane.showInputDialog(
+                this,
+                "Choose an item:",
+                "Use Item",
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                itemOptions,
+                itemOptions[0]
+        );
+
+        if (selectedItemText == null) return;
+
+        int itemIndex = findSelectedIndex(itemOptions, selectedItemText);
+        if (itemIndex < 0) return;
+
+        Item selectedItem = items.get(itemIndex);
+
+        String[] heroOptions = new String[heroes.size()];
+        for (int i = 0; i < heroes.size(); i++) {
+            Hero h = heroes.get(i);
+            heroOptions[i] = h.getName() + " HP " + h.getHp() + "/" + h.getMaxHp() + " Mana " + h.getMana();
+        }
+
+        String selectedHeroText = (String) JOptionPane.showInputDialog(
+                this,
+                "Choose a hero:",
+                "Use Item",
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                heroOptions,
+                heroOptions[0]
+        );
+
+        if (selectedHeroText == null) return;
+
+        int heroIndex = findSelectedIndex(heroOptions, selectedHeroText);
+        if (heroIndex < 0) return;
+
+        Hero selectedHero = heroes.get(heroIndex);
+
+        boolean used = appState.currentInventory.useItem(selectedItem, selectedHero);
+        if (!used) {
+            log("Could not use item.");
+            refreshBattleView();
+            return;
+        }
+
+        log("Used " + selectedItem.getName() + " on " + selectedHero.getName() + ".");
+
+        Hero actor = battleState.getCurrentHero();
+        BattleResult result = controller.executeTurn(
+                battleState,
+                new com.example.domain.Action(ActionType.WAIT, actor, null, 0)
+        );
+
+        log("Using an item consumed the turn.");
+        log(result.getMessage());
         refreshBattleView();
+
+        if (battleState.isFinished()) {
+            finishBattle(result);
+            return;
+        }
+
+        actionLocked = false;
+
+        if (!isPlayerTurn()) {
+            scheduleSingleEnemyTurn();
+        } else {
+            refreshBattleView();
+        }
+    }
+
+    private void scheduleSingleEnemyTurn() {
+        if (battleState == null || battleState.isFinished()) {
+            return;
+        }
+
+        actionLocked = true;
+        setActionButtonsEnabled(false);
+
+        Timer timer = new Timer(250, e -> processSingleEnemyTurn());
+        timer.setRepeats(false);
+        timer.start();
+    }
+
+    private void processSingleEnemyTurn() {
+        if (battleState == null || battleState.isFinished()) {
+            actionLocked = false;
+            refreshBattleView();
+            return;
+        }
+
+        Hero actor = battleState.getCurrentHero();
+        if (actor == null) {
+            actionLocked = false;
+            refreshBattleView();
+            return;
+        }
+
+        if (isPlayerHero(actor)) {
+            actionLocked = false;
+            refreshBattleView();
+            return;
+        }
+
+        Hero target = firstLivingHero(battleState.getPlayerParty());
+        if (target == null) {
+            battleState.checkBattleEnd();
+            refreshBattleView();
+            if (battleState.isFinished()) {
+                finishBattle(new BattleResult(false, 0, 0, "Player lost"));
+            } else {
+                actionLocked = false;
+                refreshBattleView();
+            }
+            return;
+        }
+
+        com.example.domain.Action action =
+                new com.example.domain.Action(ActionType.ATTACK, actor, target, 0);
+
+        BattleResult result = controller.executeTurn(battleState, action);
+        log(actor.getName() + " attacked " + target.getName() + ".");
+        log(result.getMessage());
+
+        if (battleState.isFinished()) {
+            refreshBattleView();
+            finishBattle(result);
+            return;
+        }
+
+        actionLocked = false;
+
+        // IMPORTANT:
+        // Hand control back to the player. Do NOT keep chaining enemy turns.
+        refreshBattleView();
+    }
+
+    private void finishBattle(BattleResult result) {
+        applyBattleOutcome(result);
+        refreshBattleView();
+        actionLocked = false;
+        setActionButtonsEnabled(false);
+        SwingUtilities.invokeLater(this::postBattleChoice);
     }
 
     private void postBattleChoice() {
@@ -224,6 +428,7 @@ public class BattleView extends JFrame implements UICommands {
                 Main.campaignController.saveProgress(appState.currentUser.getUserId(), appState.currentCampaign);
             }
             new InnView(appState, Main.innController).start();
+            dispose();
             return;
         }
 
@@ -243,6 +448,7 @@ public class BattleView extends JFrame implements UICommands {
                     Main.campaignController.saveProgress(appState.currentUser.getUserId(), appState.currentCampaign);
                 }
                 new InnView(appState, Main.innController).start();
+                dispose();
                 return;
             }
         }
@@ -259,7 +465,9 @@ public class BattleView extends JFrame implements UICommands {
     }
 
     private boolean isPartyAtFullHealth() {
-        Party party = battleState.getPlayerParty();
+        Party party = battleState != null ? battleState.getPlayerParty() : appState.currentParty;
+        if (party == null) return true;
+
         for (Hero hero : party.getHeroes()) {
             if (hero.getHp() < hero.getMaxHp()) {
                 return false;
@@ -277,9 +485,19 @@ public class BattleView extends JFrame implements UICommands {
         if (result.didPlayerWin()) {
             playerParty.addGold(result.getGoldGained());
 
+            int livingCount = 0;
             for (Hero hero : playerParty.getHeroes()) {
                 if (hero.isAlive()) {
-                    hero.gainExperience(result.getExpGained());
+                    livingCount++;
+                }
+            }
+
+            if (livingCount > 0) {
+                int expEach = result.getExpGained() / livingCount;
+                for (Hero hero : playerParty.getHeroes()) {
+                    if (hero.isAlive()) {
+                        hero.gainExperience(expEach);
+                    }
                 }
             }
 
@@ -288,9 +506,9 @@ public class BattleView extends JFrame implements UICommands {
                 Main.campaignController.saveProgress(appState.currentUser.getUserId(), appState.currentCampaign);
             }
 
-            append("Victory rewards applied.");
+            log("Victory rewards applied.");
         } else {
-            int goldLoss = playerParty.getGold() / 10;
+            int goldLoss = Math.max(1, playerParty.getGold() / 10);
             playerParty.spendGold(goldLoss);
 
             for (Hero hero : playerParty.getHeroes()) {
@@ -301,7 +519,7 @@ public class BattleView extends JFrame implements UICommands {
                 Main.campaignController.saveProgress(appState.currentUser.getUserId(), appState.currentCampaign);
             }
 
-            append("Defeat penalties applied.");
+            log("Defeat penalties applied.");
         }
     }
 
@@ -309,6 +527,7 @@ public class BattleView extends JFrame implements UICommands {
         if (battleState == null) {
             output.setText("No battle started.\n");
             targetBox.setModel(new DefaultComboBoxModel<>(new String[0]));
+            setActionButtonsEnabled(false);
             return;
         }
 
@@ -335,7 +554,29 @@ public class BattleView extends JFrame implements UICommands {
         sb.append("\n=== ENEMY TEAM ===\n");
         appendParty(sb, battleState.getEnemyParty());
 
+        sb.append("\n=== INVENTORY ===\n");
+        if (appState.currentInventory == null || appState.currentInventory.getItems().isEmpty()) {
+            sb.append("No items.\n");
+        } else {
+            for (Item item : appState.currentInventory.getItems()) {
+                sb.append("- ")
+                        .append(item.getName())
+                        .append(" / ")
+                        .append(item.getEffectType())
+                        .append(" ")
+                        .append(item.getEffectValue())
+                        .append("\n");
+            }
+        }
+
+        sb.append("\n=== BATTLE LOG ===\n");
+        int start = Math.max(0, battleLog.size() - 10);
+        for (int i = start; i < battleLog.size(); i++) {
+            sb.append("- ").append(battleLog.get(i)).append("\n");
+        }
+
         output.setText(sb.toString());
+        updateTurnControls();
     }
 
     private void appendParty(StringBuilder sb, Party party) {
@@ -346,12 +587,38 @@ public class BattleView extends JFrame implements UICommands {
                     .append(" [").append(h.getType()).append("]")
                     .append(" L").append(h.getLevel())
                     .append(" HP ").append(h.getHp()).append("/").append(h.getMaxHp())
-                    .append(" Mana ").append(h.getMana())
+                    .append(" Mana ").append(h.getMana()).append("/").append(h.getMaxMana())
                     .append(" ATK ").append(h.getAttack())
                     .append(" DEF ").append(h.getDefense())
+                    .append(" Shield ").append(h.getShield())
                     .append(h.isAlive() ? "" : " (DEAD)")
                     .append("\n");
         }
+    }
+
+    private void updateTurnControls() {
+        boolean canAct = battleState != null
+                && !battleState.isFinished()
+                && !actionLocked
+                && isPlayerTurn();
+
+        setActionButtonsEnabled(canAct);
+    }
+
+    private void setActionButtonsEnabled(boolean enabled) {
+        attackButton.setEnabled(enabled);
+        defendButton.setEnabled(enabled);
+        waitButton.setEnabled(enabled);
+        specialButton.setEnabled(enabled);
+        useItemButton.setEnabled(enabled);
+    }
+
+    private boolean isPlayerTurn() {
+        if (battleState == null || battleState.isFinished()) {
+            return false;
+        }
+        Hero current = battleState.getCurrentHero();
+        return current != null && isPlayerHero(current);
     }
 
     private boolean isPlayerHero(Hero hero) {
@@ -388,16 +655,25 @@ public class BattleView extends JFrame implements UICommands {
 
     private int manaCostFor(Hero hero) {
         return switch (hero.getType()) {
-            case "Order" -> 25;
-            case "Chaos" -> 30;
+            case "Order" -> 35;
+            case "Chaos" -> 40;
             case "Warrior" -> 60;
             case "Mage" -> 80;
             default -> 20;
         };
     }
 
-    private void append(String message) {
-        output.append("\n" + message + "\n");
+    private int findSelectedIndex(String[] options, String selected) {
+        for (int i = 0; i < options.length; i++) {
+            if (options[i].equals(selected)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private void log(String message) {
+        battleLog.add(message);
     }
 
     public void start() {

@@ -14,54 +14,107 @@ public class BattleService {
     }
 
     public BattleResult executeTurn(BattleState state, Action action) {
-
         Hero actor = action.getActor();
         Hero target = action.getTarget();
 
+        if (state == null) {
+            return new BattleResult(false, 0, 0, "Invalid battle state");
+        }
+
         if (actor == null) {
             return new BattleResult(false, 0, 0, "Invalid actor");
+        }
+
+        Hero current = state.getCurrentHero();
+        if (current == null) {
+            state.checkBattleEnd();
+            return new BattleResult(false, 0, 0, "No valid actor");
+        }
+
+        if (actor != current) {
+            return new BattleResult(false, 0, 0, "It is not this unit's turn");
         }
 
         if (!actor.isAlive()) {
             return new BattleResult(false, 0, 0, "Actor is dead");
         }
 
-        if (action.getType() == ActionType.ATTACK) {
+        ActionType type = action.getType();
 
-            if (target != null) {
-                target.takeDamage(actor.getAttack());
+        if (type == ActionType.ATTACK) {
+            if (target == null || !target.isAlive()) {
+                return new BattleResult(false, 0, 0, "Invalid target");
             }
-        }
 
-        if (action.getType() == ActionType.DEFEND) {
-            // simple defend (no change yet)
-        }
+            target.takeDamage(actor.getAttack());
+            state.checkBattleEnd();
 
-        if (action.getType() == ActionType.WAIT) {
-            // do nothing
-        }
-
-        if (action.getType() == ActionType.SPECIAL) {
-            if (target != null) {
-                target.takeDamage(actor.getAttack() + 5);
+            if (state.isFinished()) {
+                return buildEndResult(state);
             }
+
+            state.nextTurn();
+            return new BattleResult(false, 0, 0, "Attack complete");
         }
 
-        state.checkBattleEnd();
+        if (type == ActionType.DEFEND) {
+            actor.heal(10);
+            actor.addMana(5);
 
-        if (state.isFinished()) {
-
-            boolean playerWon = state.getEnemyParty().hasLivingHeroes() == false;
-
-            if (playerWon) {
-                return new BattleResult(true, 50, 30, "Player won");
-            } else {
-                return new BattleResult(false, 10, 5, "Player lost");
+            state.checkBattleEnd();
+            if (state.isFinished()) {
+                return buildEndResult(state);
             }
+
+            state.nextTurn();
+            return new BattleResult(false, 0, 0, "Defend complete");
         }
 
-        state.nextTurn();
+        if (type == ActionType.WAIT) {
+            state.delayCurrentHero();
+            state.checkBattleEnd();
 
-        return new BattleResult(false, 0, 0, "Turn complete");
+            if (state.isFinished()) {
+                return buildEndResult(state);
+            }
+
+            return new BattleResult(false, 0, 0, "Wait complete");
+        }
+
+        if (type == ActionType.SPECIAL) {
+            if (!actor.hasManaFor(action)) {
+                return new BattleResult(false, 0, 0, "Not enough mana");
+            }
+
+            actor.castSpecial(target, state.getPlayerParty(), state.getEnemyParty());
+            state.checkBattleEnd();
+
+            if (state.isFinished()) {
+                return buildEndResult(state);
+            }
+
+            state.nextTurn();
+            return new BattleResult(false, 0, 0, "Special complete");
+        }
+
+        return new BattleResult(false, 0, 0, "Unknown action");
+    }
+
+    private BattleResult buildEndResult(BattleState state) {
+        boolean playerWon = !state.getEnemyParty().hasLivingHeroes();
+
+        if (playerWon) {
+            int exp = 0;
+            int gold = 0;
+
+            for (Hero enemy : state.getEnemyParty().getHeroes()) {
+                exp += 50 * enemy.getLevel();
+                gold += 75 * enemy.getLevel();
+            }
+
+            return new BattleResult(true, exp, gold, "Player won");
+        }
+
+        return new BattleResult(false, 0, 0, "Player lost");
     }
 }

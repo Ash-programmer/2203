@@ -14,7 +14,7 @@ public class Party {
     public Party() {
         this.heroes = new ArrayList<>();
         this.gold = 100;
-        this.maxSize = 3;
+        this.maxSize = 5;
     }
 
     public Party(int maxSize) {
@@ -23,22 +23,16 @@ public class Party {
         this.maxSize = maxSize;
     }
 
-    public int getId(){
-        return id;
-    }
-    public String getName(){
-        return name;
-    }
-    public List<Hero> getHeroes(){
-        return heroes;
-    }
-    public int getGold()            { return gold; }
-    public int getMaxSize()         { return maxSize; }
-    public int getSize()            { return heroes.size(); }
+    public int getId()               { return id; }
+    public String getName()          { return name; }
+    public List<Hero> getHeroes()    { return heroes; }
+    public int getGold()             { return gold; }
+    public int getMaxSize()          { return maxSize; }
+    public int getSize()             { return heroes.size(); }
 
-    public void setId(int id)                   { this.id = id; }
-    public void setName(String name)            { this.name = name; }
-    public void setHeroes(List<Hero> heroes)    { this.heroes = heroes; }
+    public void setId(int id)                    { this.id = id; }
+    public void setName(String name)             { this.name = name; }
+    public void setHeroes(List<Hero> heroes)     { this.heroes = heroes; }
 
     public boolean addHero(Hero hero) {
         if (heroes.size() >= maxSize) return false;
@@ -46,8 +40,13 @@ public class Party {
         return true;
     }
 
-    public boolean removeHero(Hero hero)    { return heroes.remove(hero); }
-    public boolean isFull()                 { return heroes.size() >= maxSize; }
+    public boolean removeHero(Hero hero) {
+        return heroes.remove(hero);
+    }
+
+    public boolean isFull() {
+        return heroes.size() >= maxSize;
+    }
 
     public boolean hasLivingHeroes() {
         for (Hero h : heroes) {
@@ -56,7 +55,9 @@ public class Party {
         return false;
     }
 
-    public void addGold(int amount) { gold += amount; }
+    public void addGold(int amount) {
+        gold += amount;
+    }
 
     public boolean spendGold(int amount) {
         if (gold < amount) return false;
@@ -66,10 +67,19 @@ public class Party {
 
     public Hero getHighestLevelHero() {
         if (heroes.isEmpty()) return null;
+
         Hero best = heroes.get(0);
         for (Hero h : heroes) {
             if (h.getLevel() > best.getLevel()) best = h;
         }
         return best;
+    }
+
+    public int getCumulativeLevel() {
+        int total = 0;
+        for (Hero h : heroes) {
+            total += h.getLevel();
+        }
+        return total;
     }
 }

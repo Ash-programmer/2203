@@ -31,17 +31,16 @@ public class Item {
     }
 
     public void applyEffect(Hero hero) {
-
         if (effectType.equals("heal")) {
             hero.heal(effectValue);
         }
 
         if (effectType.equals("mana")) {
-            // future mana system
+            hero.addMana(effectValue);
         }
 
         if (effectType.equals("buff")) {
-            // future buff system
+            hero.addShield(effectValue);
         }
     }
 }
