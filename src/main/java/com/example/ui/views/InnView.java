@@ -135,7 +135,7 @@ public class InnView extends JFrame implements UICommands {
             return;
         }
 
-        String name = JOptionPane.showInputDialog(this, "Enter hero name for new " + heroType + ":");
+        String name = JOptionPane.showInputDialog(this, "Enter hero name for new " + heroType + " (cost: 50 gold):");
         if (name == null || name.isBlank()) {
             name = heroType;
         }
@@ -206,7 +206,7 @@ public class InnView extends JFrame implements UICommands {
                         .append(" [").append(h.getType()).append("]")
                         .append(" L").append(h.getLevel())
                         .append(" HP ").append(h.getHp()).append("/").append(h.getMaxHp())
-                        .append(" Mana ").append(h.getMana())
+                        .append(" Mana ").append(h.getMana()).append("/").append(h.getMaxMana())
                         .append(h.isAlive() ? "" : " (DEAD)")
                         .append("\n");
             }
@@ -225,6 +225,11 @@ public class InnView extends JFrame implements UICommands {
                         .append("\n");
             }
         }
+
+        sb.append("\nAvailable shop items:\n");
+        sb.append("- Potion (10 gold) heals 20 HP\n");
+        sb.append("- Ether (15 gold) restores 20 mana\n");
+        sb.append("- Recruiting a hero costs 50 gold\n");
 
         output.setText(sb.toString());
     }

@@ -2,7 +2,6 @@ package com.example.services;
 
 import com.example.domain.Campaign;
 import com.example.domain.Party;
-import com.example.domain.Room;
 import com.example.domain.RoomType;
 import com.example.domain.Score;
 import com.example.domain.User;
@@ -26,7 +25,6 @@ public class CampaignService {
 
     public Campaign startCampaign(User user, Party party) {
         Campaign campaign = new Campaign(party);
-
         campaign.setCurrentRoom(1);
         campaign.setLastRoomType(RoomType.INN);
 
@@ -58,7 +56,16 @@ public class CampaignService {
     }
 
     public boolean canExitCampaign(boolean battleInProgress, Campaign campaign) {
-        return campaign != null && !battleInProgress;
+        if (campaign == null || battleInProgress) {
+            return false;
+        }
+
+        RoomType type = campaign.getLastRoomType();
+        return type == RoomType.INN || type == RoomType.BATTLE;
+    }
+
+    public boolean isCampaignComplete(Campaign campaign) {
+        return campaign != null && campaign.getCurrentRoom() > 30 || (campaign != null && campaign.isComplete());
     }
 
     public Score endCampaign(User user, Campaign campaign, boolean keepParty, Integer replacePartyId) {

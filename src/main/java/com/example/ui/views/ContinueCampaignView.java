@@ -1,7 +1,9 @@
 package com.example.ui.views;
 
+import com.example.Main;
 import com.example.controllers.ContinueCampaignController;
 import com.example.domain.Campaign;
+import com.example.domain.RoomType;
 import com.example.ui.UICommands;
 
 import javax.swing.*;
@@ -46,9 +48,20 @@ public class ContinueCampaignView extends JFrame implements UICommands {
         state.currentCampaign = c;
         state.currentParty = c.getParty();
         state.currentInventory = c.getInventory();
+        state.currentlyInInn = c.getLastRoomType() == RoomType.INN;
+        state.currentlyInBattle = c.getLastRoomType() == RoomType.BATTLE;
+        state.battleInProgress = false;
 
         output.setText("Loaded campaign.\nRoom: " + c.getCurrentRoom()
                 + "\nLast room type: " + c.getLastRoomType());
+
+        if (c.getLastRoomType() == RoomType.INN) {
+            new InnView(state, Main.innController).start();
+            dispose();
+        } else {
+            new CampaignView(state, Main.campaignController).start();
+            dispose();
+        }
     }
 
     public void start() {
